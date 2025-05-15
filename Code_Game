@@ -3,6 +3,7 @@ import random
 import sys
 
 pygame.init()
+pygame.mixer.init()
 # Configuración de pantalla
 ANCHO, ALTO = 800, 600
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
@@ -91,9 +92,11 @@ fuente = pygame.font.SysFont(None, 36)
 def mostrar_menu():
     opciones = ["JUGAR", "CRÉDITOS"]
     indice = 0
+    ambient_music = pygame.mixer.Sound('Assetsbald/Menu (Full).mp3')
+    ambient_music.play()
     while True:
         pantalla.fill(GRIS)
-        ambient_music = pygame.mixer.Sound('Assetsbald/Menu (Full).mp3')
+
         titulo = fuente_titulo.render("MISDUMBENTURES:", True, NEGRO)
         pantalla.blit(titulo, (ANCHO // 2 - titulo.get_width() // 2, 150))
         titulo2 = fuente_titulo.render("THE BALD'S VR", True, NEGRO)
@@ -112,18 +115,23 @@ def mostrar_menu():
         pygame.display.flip()
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
+                ambient_music.stop()
                 pygame.quit()
                 exit()
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_ESCAPE:
+                    ambient_music.stop()
                     pygame.quit()
                     exit()
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_w:
+                    ambient_music.stop()
                     indice = (indice - 1) % len(opciones)
                 elif evento.key == pygame.K_s:
+                    ambient_music.stop()
                     indice = (indice + 1) % len(opciones)
                 elif evento.key == pygame.K_RETURN:
+                    ambient_music.stop()
                     return "juego" if indice == 0 else "creditos"
 
 def mostrar_creditos():
@@ -186,6 +194,8 @@ def mostrar_game_over():
     while True:
         pantalla.fill(GRIS)
         ambient_music = pygame.mixer.Sound('Assetsbald/Game over.wav')
+        ambient_music.play()
+
         puntuacion_final = puntuacion
         texto = fuente_titulo.render("GAME OVER", True, ROJO_OSCURO)
         puntos_txt = fuente_opciones.render(f"Puntos: {puntuacion_final}", True, NEGRO)
@@ -239,10 +249,12 @@ def mostrar_pausa():
     ancho_red, alto_red = int(ANCHO * escala), int(ALTO * escala)
     fondo_reducido = pygame.transform.smoothscale(fondo, (ancho_red, alto_red))
     fondo_desenfocado = pygame.transform.smoothscale(fondo_reducido, (ANCHO, ALTO))
-
+    ambient_music = pygame.mixer.Sound('Assetsbald/Pausa.mp3')
+    ambient_music.play()
     while True:
         pantalla.blit(fondo_desenfocado, (0, 0))
-        ambient_music = pygame.mixer.Sound('Assetsbald/Pausa.mp3')
+
+
         # Fondo semitransparente
         overlay = pygame.Surface((ANCHO, ALTO))
         overlay.set_alpha(150)  # Nivel de transparencia (0-255)
@@ -268,18 +280,23 @@ def mostrar_pausa():
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT:
                 pygame.quit()
+                ambient_music.stop()
                 exit()
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_w:
                     indice = (indice - 1) % len(opciones)
+                    ambient_music.stop()
                 elif evento.key == pygame.K_s:
                     indice = (indice + 1) % len(opciones)
+                    ambient_music.stop()
                 elif evento.key == pygame.K_RETURN:
+                    ambient_music.stop()
                     return opciones[indice]
 
 
+
 def jugar_juego(color_personaje):
-    jefe_aparecido = False
+    
     global puntuacion
     puntuacion = 0
     texto_puntos = fuente_opciones.render(f"Puntos: {puntuacion}", True, NEGRO)
@@ -340,6 +357,8 @@ def jugar_juego(color_personaje):
         if teclas[pygame.K_SPACE]:
             if en_suelo:
                 ambient_music = pygame.mixer.Sound('Assetsbald/Saltar.wav')
+                ambient_music.play()
+
                 vel_y = fuerza_salto
                 en_suelo = False
                 saltos_restantes = datos["saltos"]
@@ -354,6 +373,8 @@ def jugar_juego(color_personaje):
 
         if teclas[pygame.K_e] and ataque is None and tiempo_actual - ataque_inicio > 1000:
             ambient_music = pygame.mixer.Sound('Assetsbald/Golpear.wav')
+            ambient_music.play()
+
             ataque = pygame.Rect(jugador_rect.centerx, jugador_rect.centery - 15, 80, 30)
             ataque_inicio = tiempo_actual
             ataque_usado = False
@@ -543,10 +564,6 @@ def jugar_juego(color_personaje):
 
         enemigos = [e for e in enemigos if e not in enemigos_a_remover]
 
-        # Detecta la colisión entre la bala y los enemigos
-        # Mover las balas
-        # Mover las balas
-        # Mover las balas
         for p in proyectiles[:]:
             p["vy"] += 0.5  # gravedad aplicada a la bala
             p["rect"].x += p["vx"]
@@ -559,8 +576,6 @@ def jugar_juego(color_personaje):
             # Dibujar las balas en la pantalla
             pantalla.blit(pygame.transform.scale(img_bala_rosa, (32, 32)), p["rect"].topleft)
 
-        # Procesamos las balas disparadas por el enemigo rosa
-        # Procesamos las balas disparadas por el enemigo rosa
         for p in proyectiles[:]:
             if p["rect"].colliderect(jugador_rect):
                 if tiempo_actual - ultimo_danio > 1000:
@@ -616,7 +631,7 @@ def jugar_juego(color_personaje):
 
             frame = anim_ataque[ataque_frame]
 
-            tamaño_ataque = (64, 64)  # Puedes cambiar este tamaño si lo deseas
+            tamaño_ataque = (64, 64)  #Tamaño del ataque
             frame_escalado = pygame.transform.scale(frame, tamaño_ataque)
 
             # Centrar sobre el jugador de 32x32
