@@ -1,4 +1,5 @@
 # Juego_Final
+<img src="Juego_Final/Captura de pantalla 2025-5-15 110641.png" alt="Titol" width="800">
 
 La idea del fer aquest joc, és fer un joc tipus "mario arcade". Hem fet 3 personatjes amb diferents poders cadascun. El primer personatje té un "stomp", que fa que pugui eliminar els enemics i fer un salt. El segon té una vida més i al finalde cada ronda es cura dos de vida i no una. I l'últim té un doble salt.
 
