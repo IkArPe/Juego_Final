@@ -339,6 +339,7 @@ def jugar_juego(color_personaje):
 
         if teclas[pygame.K_SPACE]:
             if en_suelo:
+                ambient_music = pygame.mixer.Sound('Assetsbald/Saltar.wav')
                 vel_y = fuerza_salto
                 en_suelo = False
                 saltos_restantes = datos["saltos"]
@@ -352,6 +353,7 @@ def jugar_juego(color_personaje):
             jugador_rect.right = ANCHO
 
         if teclas[pygame.K_e] and ataque is None and tiempo_actual - ataque_inicio > 1000:
+            ambient_music = pygame.mixer.Sound('Assetsbald/Golpear.wav')
             ataque = pygame.Rect(jugador_rect.centerx, jugador_rect.centery - 15, 80, 30)
             ataque_inicio = tiempo_actual
             ataque_usado = False
