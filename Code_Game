@@ -1,0 +1,689 @@
+import pygame
+import random
+import sys
+
+pygame.init()
+# Configuración de pantalla
+ANCHO, ALTO = 800, 600
+pantalla = pygame.display.set_mode((ANCHO, ALTO))
+pygame.display.set_caption("Bald's VR")
+
+# Colores
+BLANCO = (255, 255, 255)
+NEGRO = (0, 0, 0)
+ROJO = (255, 0, 0)
+AZUL = (0, 0, 255)
+AMARILLO = (255, 255, 0)
+VERDE = (0, 255, 0)
+ROJO_OSCURO = (180, 0, 0)
+VERDE_OSCURO = (0, 100, 0)
+NARANJA = (255, 165, 0)
+ROSA = (255, 105, 180)
+GRIS = (155,155,155)
+# Diccionario de personajes
+PERSONAJES = {
+    ROJO: {"saltos": 0, "vidas": 3, "habilidad": "stomp"},
+    AZUL: {"saltos": 0, "vidas": 4, "habilidad": "resistencia"},
+    AMARILLO: {"saltos": 1, "vidas": 3, "habilidad": "doble_salto"}
+}
+# Cargar imágenes de enemigos
+img_enemigo_rojo = pygame.image.load("Assetsbald/EnemieBall.png").convert_alpha()
+img_enemigo_verde_idle = pygame.image.load("Assetsbald/EnemieFungus.png").convert_alpha()
+img_enemigo_naranja = pygame.image.load("Assetsbald/EnemieFish.png").convert_alpha()
+img_enemigo_rosa = pygame.image.load("Assetsbald/EnemieMass.png").convert_alpha()
+img_bala_rosa = pygame.image.load("Assetsbald/EnemieMass_Bullet.png").convert_alpha()
+
+
+# Cargar animaciones del enemigo
+animacion_verde = [pygame.image.load(f"Assetsbald/EnemieFungus_Attack{i}.png").convert_alpha() for i in range(1, 5)]
+animacion_rojo = [pygame.image.load(f"Assetsbald/EnemieBall_moving{i}.png").convert_alpha() for i in range(1, 6)]
+animacion_naranja = [pygame.image.load(f"Assetsbald/EnemieFish_moving{i}.png").convert_alpha()for i in range(1,6)]
+
+animacion_verde_idle = [
+    pygame.image.load(f'Assetsbald/EnemieFungus_moving{i}.png').convert_alpha() for i in range(1, 6)
+]
+
+# Cargar imágenes de personajes
+img_jugador_rojo = pygame.image.load("Assetsbald/PlayerFool.png").convert_alpha()
+img_jugador_azul = pygame.image.load("Assetsbald/PlayerDouche.png").convert_alpha()
+img_jugador_amarillo = pygame.image.load("Assetsbald/PlayerNij.png").convert_alpha()
+
+ATAQUES_JUGADOR = {
+    ROJO: [pygame.image.load(f"Assetsbald/PlayerFool_Attack{i}.png") for i in range(1,5)],
+    AZUL: [pygame.image.load(f"Assetsbald/PlayerDouche_Attack{i}.png") for i in range(1,5)],
+    AMARILLO: [pygame.image.load(f"Assetsbald/PlayerNig_Attack{i}.png") for i in range(1,5)],
+}
+
+
+IMAGENES_JUGADOR = {
+    ROJO: img_jugador_rojo,
+    AZUL: img_jugador_azul,
+    AMARILLO: img_jugador_amarillo
+}
+
+# Fuentes
+fuente_titulo = pygame.font.SysFont(None, 80)
+fuente_opciones = pygame.font.SysFont(None, 50)
+
+# Reloj
+reloj = pygame.time.Clock()
+
+# Física
+gravedad = 1
+fuerza_salto = -20
+vel_x = 5
+
+puntuacion = 0
+# Animación de la salida (elevador)
+animacion_salida = [
+    pygame.image.load(f"Assetsbald/Elevator{i}.png") for i in range(1, 4)
+]
+plataformas = [
+    pygame.Rect(0, ALTO - 100, ANCHO, 100),  # suelo principal
+    pygame.Rect(0, 350, ANCHO, 20),
+    pygame.Rect(0, 200, ANCHO, 20),
+    pygame.Rect(100, 500, 600, 20)  # NUEVA plataforma intermedia
+]
+fuente = pygame.font.SysFont(None, 36)
+
+
+
+def mostrar_menu():
+    opciones = ["JUGAR", "CRÉDITOS"]
+    indice = 0
+    while True:
+        pantalla.fill(GRIS)
+        ambient_music = pygame.mixer.Sound('Assetsbald/Menu (Full).mp3')
+        titulo = fuente_titulo.render("MISDUMBENTURES:", True, NEGRO)
+        pantalla.blit(titulo, (ANCHO // 2 - titulo.get_width() // 2, 150))
+        titulo2 = fuente_titulo.render("THE BALD'S VR", True, NEGRO)
+        pantalla.blit(titulo2, (ANCHO // 2 - titulo2.get_width() // 2, 200))
+
+        for i, opcion in enumerate(opciones):
+            texto = fuente_opciones.render(opcion, True, NEGRO)
+            pantalla.blit(texto, (ANCHO // 2 - texto.get_width() // 2, 300 + i * 70))
+            if i == indice:
+                pygame.draw.polygon(pantalla, NEGRO, [
+                    (ANCHO // 2 - texto.get_width() // 2 - 30, 315 + i * 70),
+                    (ANCHO // 2 - texto.get_width() // 2 - 10, 305 + i * 70),
+                    (ANCHO // 2 - texto.get_width() // 2 - 10, 325 + i * 70)
+                ])
+
+        pygame.display.flip()
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    exit()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_w:
+                    indice = (indice - 1) % len(opciones)
+                elif evento.key == pygame.K_s:
+                    indice = (indice + 1) % len(opciones)
+                elif evento.key == pygame.K_RETURN:
+                    return "juego" if indice == 0 else "creditos"
+
+def mostrar_creditos():
+    while True:
+        pantalla.fill(BLANCO)
+        volver = fuente_opciones.render("Presiona ESC para volver", True, NEGRO)
+        texto = fuente_opciones.render("Codigo: Iker, Pau", True, NEGRO)
+        pantalla.blit(texto, (ANCHO // 2 - texto.get_width() // 2, 175))
+        texto2 = fuente_opciones.render("Assets: Iker", True, NEGRO)
+        pantalla.blit(texto2, (ANCHO // 2 - texto.get_width() // 2, 225))
+        texto3 = fuente_opciones.render("Musica: Toby Fox", True, NEGRO)
+        pantalla.blit(texto3, (ANCHO // 2 - texto.get_width() // 2, 275))
+        texto4 = fuente_opciones.render("SFX: Freesound", True, NEGRO)
+        pantalla.blit(texto4, (ANCHO // 2 - texto.get_width() // 2, 325))
+        pantalla.blit(volver, (ANCHO // 2 - volver.get_width() // 2, 400))
+        pygame.display.flip()
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_ESCAPE:
+                return
+
+
+def seleccionar_personaje():
+    opciones = list(PERSONAJES.keys())
+    indice = 0
+    while True:
+        pantalla.fill(BLANCO)
+        titulo = fuente_titulo.render("Selecciona tu personaje", True, NEGRO)
+        pantalla.blit(titulo, (ANCHO // 2 - titulo.get_width() // 2, 50))
+
+        for i, color in enumerate(opciones):
+            rect = pygame.Rect(ANCHO // 2 - 50, 200 + i * 100, 100, 50)
+            pygame.draw.rect(pantalla, color, rect)
+            if i == indice:
+                pygame.draw.polygon(pantalla, NEGRO, [
+                    (ANCHO // 2 - 70, 225 + i * 100),
+                    (ANCHO // 2 - 90, 215 + i * 100),
+                    (ANCHO // 2 - 90, 235 + i * 100)
+                ])
+
+        pygame.display.flip()
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_w:
+                    indice = (indice - 1) % len(opciones)
+                if evento.key == pygame.K_s:
+                    indice = (indice + 1) % len(opciones)
+                if evento.key == pygame.K_RETURN:
+                    return opciones[indice]
+
+
+def mostrar_game_over():
+    while True:
+        pantalla.fill(GRIS)
+        ambient_music = pygame.mixer.Sound('Assetsbald/Game over.wav')
+        puntuacion_final = puntuacion
+        texto = fuente_titulo.render("GAME OVER", True, ROJO_OSCURO)
+        puntos_txt = fuente_opciones.render(f"Puntos: {puntuacion_final}", True, NEGRO)
+        volver = fuente_opciones.render("Presiona ENTER para volver al menú", True, NEGRO)
+
+        pantalla.blit(texto, (ANCHO // 2 - texto.get_width() // 2, 200))
+        pantalla.blit(puntos_txt, (ANCHO // 2 - puntos_txt.get_width() // 2, 280))
+        pantalla.blit(volver, (ANCHO // 2 - volver.get_width() // 2, 350))
+
+        pygame.display.flip()
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_RETURN:
+                    return  # volver al menú
+
+def mostrar_victoria():
+    while True:
+        pantalla.fill(BLANCO)
+        ambient_music = pygame.mixer.Sound('Assetsbald/Victoria2.wav')
+        texto = fuente_titulo.render("¡VICTORIA!", True, VERDE_OSCURO)
+        puntos_txt = fuente_opciones.render(f"Puntos: {puntuacion}", True, NEGRO)
+        volver = fuente_opciones.render("Presiona ENTER para volver al menú", True, NEGRO)
+
+        pantalla.blit(texto, (ANCHO // 2 - texto.get_width() // 2, 200))
+        pantalla.blit(puntos_txt, (ANCHO // 2 - puntos_txt.get_width() // 2, 280))
+        pantalla.blit(volver, (ANCHO // 2 - volver.get_width() // 2, 350))
+
+        pygame.display.flip()
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_RETURN:
+                    return  # volver al menú
+
+def mostrar_pausa():
+    opciones = ["REANUDAR", "REINICIAR", "MENU"]
+    indice = 0
+
+    # Captura la pantalla actual
+    fondo = pantalla.copy()
+
+    # Simula desenfoque escalando hacia abajo y luego hacia arriba
+    escala = 0.1
+    ancho_red, alto_red = int(ANCHO * escala), int(ALTO * escala)
+    fondo_reducido = pygame.transform.smoothscale(fondo, (ancho_red, alto_red))
+    fondo_desenfocado = pygame.transform.smoothscale(fondo_reducido, (ANCHO, ALTO))
+
+    while True:
+        pantalla.blit(fondo_desenfocado, (0, 0))
+        ambient_music = pygame.mixer.Sound('Assetsbald/Pausa.mp3')
+        # Fondo semitransparente
+        overlay = pygame.Surface((ANCHO, ALTO))
+        overlay.set_alpha(150)  # Nivel de transparencia (0-255)
+        overlay.fill((50, 50, 50))  # Color oscuro semiopaco
+        pantalla.blit(overlay, (0, 0))
+
+        # Título y opciones del menú
+        titulo = fuente_titulo.render("PAUSA", True, NEGRO)
+        pantalla.blit(titulo, (ANCHO // 2 - titulo.get_width() // 2, 150))
+
+        for i, opcion in enumerate(opciones):
+            texto = fuente_opciones.render(opcion, True, NEGRO)
+            pantalla.blit(texto, (ANCHO // 2 - texto.get_width() // 2, 250 + i * 60))
+            if i == indice:
+                pygame.draw.polygon(pantalla, NEGRO, [
+                    (ANCHO // 2 - texto.get_width() // 2 - 30, 265 + i * 60),
+                    (ANCHO // 2 - texto.get_width() // 2 - 10, 255 + i * 60),
+                    (ANCHO // 2 - texto.get_width() // 2 - 10, 275 + i * 60)
+                ])
+
+        pygame.display.flip()
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_w:
+                    indice = (indice - 1) % len(opciones)
+                elif evento.key == pygame.K_s:
+                    indice = (indice + 1) % len(opciones)
+                elif evento.key == pygame.K_RETURN:
+                    return opciones[indice]
+
+
+def jugar_juego(color_personaje):
+    jefe_aparecido = False
+    global puntuacion
+    puntuacion = 0
+    texto_puntos = fuente_opciones.render(f"Puntos: {puntuacion}", True, NEGRO)
+    jugador_img = IMAGENES_JUGADOR[color_personaje]
+    jugador_rect = jugador_img.get_rect(topleft=(100, ALTO - 150))
+    vel_y = 0
+    en_suelo = False
+    puede_bajar = False
+    datos = PERSONAJES[color_personaje]
+    saltos_restantes = datos["saltos"]
+    vidas = datos["vidas"]
+    ultimo_danio = 0
+    ataque = None
+    ataque_inicio = 0
+    enemigos = []
+    proyectiles = []
+    tiempo_ultimo_enemigo = pygame.time.get_ticks()
+    enemigos_muertos = 0
+    enemigos_requeridos = 5
+    nivel = 1
+    salida = None
+    salida_anim_index = 0
+    salida_anim_timer = 0
+    indice_salida = 0
+    timer_salida = pygame.time.get_ticks()
+    anim_ataque = ATAQUES_JUGADOR[color_personaje]
+    ataque_frame = 0
+    ataque_timer = 0
+
+    corriendo = True
+    while corriendo:
+        tiempo_actual = pygame.time.get_ticks()
+        enemigos_a_remover = []
+
+        for evento in pygame.event.get():
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_p:
+                    nivel = 5
+            if evento.type == pygame.QUIT:
+                corriendo = False
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_RETURN:
+                pausa = mostrar_pausa()
+                if pausa == "MENU":
+                    puntuacion = 0
+                    return
+                elif pausa == "REINICIAR":
+                    puntuacion = 0
+                    return jugar_juego(color_personaje)
+
+
+        teclas = pygame.key.get_pressed()
+        if teclas[pygame.K_a]:
+            jugador_rect.x -= vel_x
+        if teclas[pygame.K_d]:
+            jugador_rect.x += vel_x
+        puede_bajar = teclas[pygame.K_s]
+
+        if teclas[pygame.K_SPACE]:
+            if en_suelo:
+                vel_y = fuerza_salto
+                en_suelo = False
+                saltos_restantes = datos["saltos"]
+            elif saltos_restantes > 0:
+                vel_y = fuerza_salto
+                saltos_restantes -= 1
+
+        if jugador_rect.left < 0:
+            jugador_rect.left = 0
+        elif jugador_rect.right > ANCHO:
+            jugador_rect.right = ANCHO
+
+        if teclas[pygame.K_e] and ataque is None and tiempo_actual - ataque_inicio > 1000:
+            ataque = pygame.Rect(jugador_rect.centerx, jugador_rect.centery - 15, 80, 30)
+            ataque_inicio = tiempo_actual
+            ataque_usado = False
+            ataque_frame = 0
+            ataque_timer = tiempo_actual
+
+        if ataque:
+            ataque.center = jugador_rect.center
+            if tiempo_actual - ataque_inicio > 500:
+                ataque = None
+            else:
+                for enemigo in enemigos:
+                    if ataque.colliderect(enemigo["rect"]):
+                        tipo = enemigo["tipo"]
+                        if tipo in ["rojo", "naranja", "rosa"] and not ataque_usado:
+                            enemigos_a_remover.append(enemigo)
+                            enemigos_muertos += 1
+                            puntuacion += 100
+                            ataque_usado = True  # Marcar que ya se usó el ataque
+                            ataque = None  # Eliminar el ataque después de usarse
+                            break
+                        elif tipo == "verde" and not enemigo.get("herido", False):
+                            enemigo["vx"] *= 2
+                            enemigo["herido"] = True
+
+        vel_y += gravedad
+        jugador_rect.y += vel_y
+
+        en_suelo = False
+        for plataforma in plataformas:
+            if jugador_rect.colliderect(plataforma) and vel_y >= 0:
+                es_plataforma_suelo = plataforma.top == ALTO - 100
+                if jugador_rect.bottom <= plataforma.top + vel_y:
+                    if not puede_bajar or es_plataforma_suelo:
+                        jugador_rect.bottom = plataforma.top
+                        vel_y = 0
+                        en_suelo = True
+                        saltos_restantes = datos["saltos"]
+                        break
+
+        if len(enemigos) < enemigos_requeridos - enemigos_muertos:
+            if tiempo_actual - tiempo_ultimo_enemigo >= 1500:
+                tipos_disponibles = []
+
+                if nivel == 1:
+                    tipos_disponibles = ["rojo"]
+                elif nivel == 2:
+                    tipos_disponibles = ["rojo", "naranja", "verde"]
+                elif nivel == 3:
+                    tipos_disponibles = ["rojo", "naranja", "verde", "rosa"]
+                elif nivel == 4:
+                    tipos_disponibles = ["rojo", "rosa"]
+                elif nivel == 5:
+                    tipos_disponibles = ["rosa", "rojo", "naranja", "verde"]
+
+                tipo = random.choice(tipos_disponibles)
+
+                # Decidir aleatoriamente si el enemigo aparece en el suelo o en una plataforma
+                en_plataforma = random.choice([True, False])
+                if en_plataforma:
+                    plataforma_elegida = random.choice(plataformas[:-1])  # Evitar el suelo principal
+                    x = random.randint(plataforma_elegida.left, plataforma_elegida.right - 50)
+                    y = plataforma_elegida.top - 50
+                else:
+                    x = random.randint(0, ANCHO - 50)
+                    y = ALTO - 150
+
+                nuevo = {
+                    "rect": pygame.Rect(x, y, 50, 50),
+                    "tipo": tipo,
+                    "dir": random.choice([-1, 1]),
+                    "vx": 0,
+                    "vy": 0,
+                    "last_shot": 0
+                }
+
+                if tipo == "rojo":
+                    nuevo["color"] = ROJO_OSCURO
+                    nuevo["vx"] = 2
+                    nuevo["anim_index"] = 0
+                    nuevo["anim_timer"] = tiempo_actual
+
+
+                elif tipo == "verde":
+                    nuevo["color"] = VERDE_OSCURO
+                    nuevo["vx"] = 2
+                    nuevo["anim_frames"] = animacion_verde_idle
+                    nuevo["anim_index"] = 0
+                    nuevo["anim_timer"] = tiempo_actual
+                elif tipo == "naranja":
+                    nuevo["color"] = NARANJA
+                    nuevo["vx"] = 1
+                    nuevo["anim_frames"] = animacion_naranja
+                    nuevo["anim_index"] = 0
+                    nuevo["anim_timer"] = tiempo_actual
+
+                elif tipo == "rosa":
+                    nuevo["color"] = ROSA
+                    nuevo["vx"] = 0
+
+                enemigos.append(nuevo)
+                tiempo_ultimo_enemigo = tiempo_actual
+
+        for enemigo in enemigos:
+            enemigo["rect"].x += enemigo["vx"] * enemigo["dir"]
+
+            if enemigo["rect"].colliderect(jugador_rect):
+                haciendo_stomp = (
+                        color_personaje == ROJO and
+                        jugador_rect.bottom <= enemigo["rect"].top + 10 and
+                        puede_bajar and
+                        vel_y > 0
+                )
+
+                if not haciendo_stomp and tiempo_actual - ultimo_danio > 1000:
+                    vidas -= 1
+                    ultimo_danio = tiempo_actual
+                    if vidas <= 0:
+                        mostrar_game_over()
+
+                        return
+
+            # Lógica de stomp del personaje rojo
+            if color_personaje == ROJO and jugador_rect.bottom <= enemigo["rect"].top + 10 and \
+                    jugador_rect.colliderect(enemigo["rect"]) and puede_bajar and vel_y > 0:
+                enemigos_a_remover.append(enemigo)
+                enemigos_muertos += 1
+                puntuacion += 100
+                vel_y = fuerza_salto  # rebote al matar al enemigo
+                continue
+            # Actualizar animación de enemigos rojos
+            if enemigo["tipo"] == "rojo":
+                if tiempo_actual - enemigo["anim_timer"] > 100:
+                    enemigo["anim_index"] = (enemigo["anim_index"] + 1) % len(animacion_rojo)
+                    enemigo["anim_timer"] = tiempo_actual
+            # Animación de movimiento del enemigo naranja
+            if enemigo["tipo"] == "naranja":
+                if tiempo_actual - enemigo["anim_timer"] > 150:
+                    enemigo["anim_index"] = (enemigo["anim_index"] + 1) % len(enemigo["anim_frames"])
+                    enemigo["anim_timer"] = tiempo_actual
+
+            if enemigo["tipo"] != "verde" or not enemigo.get("herido", False):
+                if enemigo["rect"].left <= 0 or enemigo["rect"].right >= ANCHO:
+                    enemigo["dir"] *= -1
+
+            if enemigo["tipo"] == "verde" and enemigo.get("herido", False):
+                if enemigo["vx"] >= 4 and (enemigo["rect"].left <= 0 or enemigo["rect"].right >= ANCHO):
+                    enemigos_a_remover.append(enemigo)
+                    enemigos_muertos += 1
+                    puntuacion += 100
+                    continue
+                for otro in enemigos:
+                    if otro is not enemigo and enemigo["rect"].colliderect(otro["rect"]):
+                        enemigos_a_remover.append(otro)
+                        enemigos_muertos += 1
+                        puntuacion += 100
+
+            # Enemigo rosa disparando proyectiles
+            if enemigo["tipo"] == "rosa":
+                distancia = abs(jugador_rect.centerx - enemigo["rect"].centerx)
+                if distancia < 200 and tiempo_actual - enemigo["last_shot"] > 2000:
+                    # Dirección de la bala
+                    dx = jugador_rect.centerx - enemigo["rect"].centerx
+                    dy = jugador_rect.centery - enemigo["rect"].centery
+
+                    # Crear la bala
+                    proyectil = {
+                        "rect": pygame.Rect(enemigo["rect"].centerx, enemigo["rect"].top, 10, 10),
+                        "vx": dx / 30,  # Velocidad en el eje x
+                        "vy": dy / 30 - 5,  # Velocidad en el eje y
+                        "color": NEGRO  # Color de la bala
+                    }
+
+                    # Agregar la bala a la lista de proyectiles
+                    proyectiles.append(proyectil)
+
+                    # Actualizar el tiempo de disparo para evitar disparos demasiado rápidos
+                    enemigo["last_shot"] = tiempo_actual
+
+                if jugador_rect.colliderect(enemigo["rect"]):
+                    if tiempo_actual - ultimo_danio > 1000:
+                        vidas -= 1
+                        ultimo_danio = tiempo_actual
+                        if vidas <= 0:
+                            mostrar_game_over()
+                            return
+
+        enemigos = [e for e in enemigos if e not in enemigos_a_remover]
+
+        # Detecta la colisión entre la bala y los enemigos
+        # Mover las balas
+        # Mover las balas
+        # Mover las balas
+        for p in proyectiles[:]:
+            p["vy"] += 0.5  # gravedad aplicada a la bala
+            p["rect"].x += p["vx"]
+            p["rect"].y += p["vy"]
+
+            # Si la bala se sale de la pantalla, eliminarla
+            if p["rect"].bottom < 0 or p["rect"].top > ALTO or p["rect"].right < 0 or p["rect"].left > ANCHO:
+                proyectiles.remove(p)
+
+            # Dibujar las balas en la pantalla
+            pantalla.blit(pygame.transform.scale(img_bala_rosa, (32, 32)), p["rect"].topleft)
+
+        # Procesamos las balas disparadas por el enemigo rosa
+        # Procesamos las balas disparadas por el enemigo rosa
+        for p in proyectiles[:]:
+            if p["rect"].colliderect(jugador_rect):
+                if tiempo_actual - ultimo_danio > 1000:
+                    vidas -= 1
+                    ultimo_danio = tiempo_actual
+                    if vidas <= 0:
+                        mostrar_game_over()
+                        return
+                proyectiles.remove(p)
+
+        if enemigos_muertos >= enemigos_requeridos and salida is None:
+            salida = pygame.Rect(ANCHO // 2 - 37, ALTO - 250, 75, 150)
+            salida_anim_index = 0
+            salida_anim_timer = tiempo_actual
+
+        if salida and jugador_rect.colliderect(salida):
+            if nivel == 5:
+                mostrar_victoria()
+                return
+            nivel += 1
+
+            # Aumentar vidas si no ha llegado al máximo
+            if color_personaje == AZUL:
+                vidas = min(vidas + 2, 3)
+            else:
+                if vidas < 3:
+                    vidas += 1
+
+            enemigos_muertos = 0
+            enemigos_requeridos = nivel * 5
+            enemigos = []
+            proyectiles = []
+
+            salida = None
+
+            jugador_rect.topleft = (100, ALTO - 150)
+            vel_y = 0
+
+        pantalla.blit(pygame.image.load('Assetsbald/Fondo.png'), (0, 0))
+        for plataforma in plataformas:
+            color = VERDE_OSCURO if plataforma.height == 20 and plataforma.y == 500 else VERDE
+            pygame.draw.rect(pantalla, color, plataforma)
+        if not ataque:
+            pantalla.blit(IMAGENES_JUGADOR[color_personaje], jugador_rect)
+            jugador_img = IMAGENES_JUGADOR[color_personaje]
+            pantalla.blit(jugador_img, jugador_img.get_rect(center=jugador_rect.center))
+            pantalla.blit(jugador_img, jugador_rect.topleft)
+
+        if ataque:
+            if tiempo_actual - ataque_timer > 100:
+                ataque_frame = (ataque_frame + 1) % len(anim_ataque)
+                ataque_timer = tiempo_actual
+
+            frame = anim_ataque[ataque_frame]
+
+            tamaño_ataque = (64, 64)  # Puedes cambiar este tamaño si lo deseas
+            frame_escalado = pygame.transform.scale(frame, tamaño_ataque)
+
+            # Centrar sobre el jugador de 32x32
+            offset_x = (tamaño_ataque[0] - 36) // 2
+            offset_y = (tamaño_ataque[1] - 0) // 2
+            pos_x = jugador_rect.x - offset_x
+            pos_y = jugador_rect.y - offset_y
+
+            pantalla.blit(frame_escalado, (pos_x, pos_y))
+        # Dibujar salida animada
+        if salida:
+            if tiempo_actual - salida_anim_timer > 200:
+                salida_anim_index = (salida_anim_index + 1) % len(animacion_salida)
+                salida_anim_timer = tiempo_actual
+
+            frame_salida = animacion_salida[salida_anim_index]
+            pantalla.blit(frame_salida, salida.topleft)
+
+
+        for enemigo in enemigos:
+            tipo = enemigo["tipo"]
+            rect = enemigo["rect"]
+            if enemigo["tipo"] == "rojo":
+                img = animacion_rojo[enemigo["anim_index"]]
+                pantalla.blit(pygame.transform.scale(img, rect.size), rect.topleft)
+            elif tipo == "verde":
+                if enemigo.get("herido", False):
+                    if tiempo_actual - enemigo["anim_timer"] > 100:
+                        enemigo["anim_index"] = (enemigo["anim_index"] + 1) % len(animacion_verde)
+                        enemigo["anim_timer"] = tiempo_actual
+                    frame = animacion_verde[enemigo["anim_index"]]
+                else:
+                    if tiempo_actual - enemigo["anim_timer"] > 100:
+                        enemigo["anim_index"] = (enemigo["anim_index"] + 1) % len(animacion_verde_idle)
+                        enemigo["anim_timer"] = tiempo_actual
+                    frame = animacion_verde_idle[enemigo["anim_index"]]
+                pantalla.blit(pygame.transform.scale(frame, rect.size), rect.topleft)
+
+            elif enemigo["tipo"] == "naranja":
+                img = animacion_naranja[enemigo["anim_index"]]
+                pantalla.blit(pygame.transform.scale(img, rect.size), rect.topleft)
+            elif tipo == "rosa":
+                pantalla.blit(pygame.transform.scale(img_enemigo_rosa, rect.size), rect.topleft)
+
+        for p in proyectiles:
+            pantalla.blit(pygame.transform.scale(img_bala_rosa, p["rect"].size), p["rect"].topleft)
+
+        for i in range(vidas):
+            pygame.draw.circle(pantalla, color_personaje, (20 + i * 30, 30), 10)
+
+        texto_enemigos = fuente_opciones.render(f"{enemigos_muertos}/{enemigos_requeridos}", True, NEGRO)
+        pantalla.blit(texto_enemigos, (ANCHO // 2 - 25, 50))
+        texto_enemigos2 = fuente_opciones.render(f"Enemigos Restantes:", True, NEGRO)
+        pantalla.blit(texto_enemigos2, (ANCHO // 2 - 175, 20))
+
+        texto_nivel = fuente_opciones.render(f"Nivel {nivel}", True, NEGRO)
+        pantalla.blit(texto_nivel, (ANCHO // 2 - texto_nivel.get_width() // 2, ALTO - 50))
+        texto_puntos = fuente_opciones.render(f"{puntuacion}", True, NEGRO)
+        pantalla.blit(texto_puntos, (ANCHO - 100, 20))
+
+        pygame.display.flip()
+        reloj.tick(60)
+
+
+# Bucle principal
+while True:
+    opcion = mostrar_menu()
+    if opcion == "juego":
+        color = seleccionar_personaje()
+        jugar_juego(color)
+    elif opcion == "creditos":
+        mostrar_creditos()
