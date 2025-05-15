@@ -138,7 +138,7 @@ def mostrar_creditos():
     while True:
         pantalla.fill(BLANCO)
         volver = fuente_opciones.render("Presiona ESC para volver", True, NEGRO)
-        texto = fuente_opciones.render("Codigo: Iker, Pau", True, NEGRO)
+        texto = fuente_opciones.render("Codigo: Iker, Pau,(amb ayuda del gepeto)", True, NEGRO)
         pantalla.blit(texto, (ANCHO // 2 - texto.get_width() // 2, 175))
         texto2 = fuente_opciones.render("Assets: Iker", True, NEGRO)
         pantalla.blit(texto2, (ANCHO // 2 - texto.get_width() // 2, 225))
